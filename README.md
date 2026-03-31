@@ -1,5 +1,9 @@
 # gitai
 
+<p align="center">
+  <img src="assets/commit-genie.png" alt="The Commit Genie" width="200"/>
+</p>
+
 AI-powered git commit message generator. Analyzes your staged changes and suggests meaningful, [Conventional Commits](https://www.conventionalcommits.org/)-formatted commit messages.
 
 ## Features
