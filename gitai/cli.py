@@ -59,19 +59,29 @@ def config():
 
     typer.echo("Current configuration:\n")
     for key, value in current.items():
-        typer.echo(f" {key}: {value}")
+        typer.echo(f"  {key}: {value}")
 
     typer.echo("")
     if not typer.confirm("Do you want to change any settings?"):
         raise typer.Exit()
-    
+
+    provider = typer.prompt(
+        "Provider (ollama, openai, anthropic, gemini)",
+        default=current["provider"],
+    )
     model = typer.prompt("Model name", default=current["model"])
-    ollama_url = typer.prompt("Ollama URL", default=current["ollama_url"])
+
+    ollama_url = current["ollama_url"]
+    if provider == "ollama":
+        ollama_url = typer.prompt("Ollama URL", default=current["ollama_url"])
+
     emoji = typer.confirm("Use emojis in commit messages?", default=current["emoji"])
 
     new_config = {
         "model": model,
+        "provider": provider,
         "ollama_url": ollama_url,
+        "commit_style": current["commit_style"],
         "emoji": emoji,
     }
 
