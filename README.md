@@ -11,6 +11,7 @@ AI-powered git commit message generator. Analyzes your staged changes and sugges
 - Reads your staged `git diff` and sends it to an LLM
 - Suggests 3 commit messages in Conventional Commits format
 - Interactive selection: pick a suggestion or write your own
+- Supports multiple providers: Ollama (local), OpenAI, Anthropic, Gemini, and [more](https://docs.litellm.ai/docs/providers)
 - Configurable model, provider, and commit style
 - Optional emoji support in commit messages
 
@@ -53,16 +54,37 @@ Settings are stored in `~/.gitai.toml`.
 | Key | Default | Description |
 |---|---|---|
 | `model` | `llama3.2` | Model name to use |
-| `provider` | `ollama` | LLM provider (`ollama`) |
-| `ollama_url` | `http://localhost:11434` | Base URL for the Ollama API |
+| `provider` | `ollama` | LLM provider (see supported providers below) |
+| `ollama_url` | `http://localhost:11434` | Base URL for the Ollama API (Ollama only) |
 | `commit_style` | `conventional` | Commit message style |
 | `emoji` | `false` | Prepend emojis to commit messages |
 
-Example `~/.gitai.toml`:
+### Supported providers
+
+| Provider | `provider` value | Example `model` value | API key env var |
+|---|---|---|---|
+| Ollama (local) | `ollama` | `llama3.2`, `mistral` | — |
+| Anthropic | `anthropic` | `claude-sonnet-4-6`, `claude-haiku-4-5-20251001` | `ANTHROPIC_API_KEY` |
+| OpenAI | `openai` | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` |
+| Gemini | `gemini` | `gemini-2.0-flash` | `GEMINI_API_KEY` |
+
+For cloud providers, set the relevant key in your shell profile:
+
+**bash/zsh** (`~/.bashrc` or `~/.zshrc`):
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**PowerShell** (`$PROFILE`):
+```powershell
+$env:ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Example `~/.gitai.toml` using Anthropic:
 
 ```toml
-model = "llama3.2"
-provider = "ollama"
+model = "claude-haiku-4-5-20251001"
+provider = "anthropic"
 ollama_url = "http://localhost:11434"
 commit_style = "conventional"
 emoji = false
@@ -70,12 +92,12 @@ emoji = false
 
 ## Requirements
 
-- [Ollama](https://ollama.com/) running locally (default provider)
-- A model pulled in Ollama, e.g. `ollama pull llama3.2`
+- Python 3.11+
+- For Ollama: [Ollama](https://ollama.com/) running locally and a model pulled, e.g. `ollama pull llama3.2`
+- For cloud providers: the relevant API key set as an environment variable
 
 ## TODO
 
-- [ ] Support additional LLM providers (OpenAI, Anthropic, Gemini, etc.) via [litellm](https://github.com/BerriAI/litellm) — the dependency is already included
 - [ ] Improve commit message quality: better prompt engineering, support for different commit styles (e.g. imperative mood enforcement, scope inference from changed files)
 - [ ] Allow configuring the number of suggestions generated
 - [ ] Add `--push` flag to commit and push in one step
