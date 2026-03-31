@@ -4,60 +4,62 @@
   <img src="assets/commit-genie.png" alt="The Commit Genie" width="200"/>
 </p>
 
-AI-powered git commit message generator. Analyzes your staged changes and suggests meaningful, [Conventional Commits](https://www.conventionalcommits.org/)-formatted commit messages.
+<p align="center">
+  <a href="https://pypi.org/project/gitai"><img src="https://img.shields.io/pypi/v/gitai" alt="PyPI version"/></a>
+  <a href="https://pypi.org/project/gitai"><img src="https://img.shields.io/pypi/pyversions/gitai" alt="Python versions"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"/></a>
+</p>
+
+AI-powered git commit message generator. Analyzes your staged changes and suggests meaningful commit messages — using any LLM you already have access to.
 
 ## Features
 
-- Reads your staged `git diff` and sends it to an LLM
-- Suggests 3 commit messages in Conventional Commits format
+- Reads your staged `git diff` and generates 3 commit message suggestions
 - Interactive selection: pick a suggestion or write your own
 - Supports multiple providers: Ollama (local), OpenAI, Anthropic, Gemini, and [more](https://docs.litellm.ai/docs/providers)
-- Configurable model, provider, and commit style
-- Optional emoji support in commit messages
+- Two commit styles: [Conventional Commits](https://www.conventionalcommits.org/) or free-form
+- Optional emoji (gitmoji) support
 
 ## Installation
 
+```bash
+pip install gitai
+```
+
 Requires Python 3.11+.
 
-```bash
-pip install .
-```
-
-Or, for development:
+## Quick start
 
 ```bash
-pip install -e .
-```
+# 1. Stage your changes
+git add .
 
-## Usage
-
-### Generate a commit message
-
-Stage your changes, then run:
-
-```bash
+# 2. Run gitai
 gitai commit
 ```
 
-gitai will read the diff, call the configured LLM, and present you with 3 commit message suggestions to choose from.
+gitai reads the diff, calls your configured LLM, and presents 3 suggestions to choose from.
 
-### View / update configuration
+## Usage
 
-```bash
-gitai config
 ```
-
-Settings are stored in `~/.gitai.toml`.
+gitai commit      Generate commit message suggestions for staged changes
+gitai config      View and update settings
+gitai --version   Show version
+gitai --help      Show help
+```
 
 ## Configuration
 
+Run `gitai config` to update settings interactively. Settings are stored in `~/.gitai.toml`.
+
 | Key | Default | Description |
 |---|---|---|
-| `model` | `llama3.2` | Model name to use |
-| `provider` | `ollama` | LLM provider (see supported providers below) |
-| `ollama_url` | `http://localhost:11434` | Base URL for the Ollama API (Ollama only) |
-| `commit_style` | `conventional` | Commit message style |
-| `emoji` | `false` | Prepend emojis to commit messages |
+| `provider` | `ollama` | LLM provider |
+| `model` | `llama3.2` | Model name |
+| `ollama_url` | `http://localhost:11434` | Ollama API base URL (Ollama only) |
+| `commit_style` | `conventional` | `conventional` or `free-form` |
+| `emoji` | `false` | Prefix suggestions with gitmoji |
 
 ### Supported providers
 
@@ -68,7 +70,7 @@ Settings are stored in `~/.gitai.toml`.
 | OpenAI | `openai` | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` |
 | Gemini | `gemini` | `gemini-2.0-flash` | `GEMINI_API_KEY` |
 
-For cloud providers, set the relevant key in your shell profile:
+For cloud providers, set the API key in your shell profile:
 
 **bash/zsh** (`~/.bashrc` or `~/.zshrc`):
 ```bash
@@ -80,25 +82,26 @@ export ANTHROPIC_API_KEY=sk-ant-...
 $env:ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-Example `~/.gitai.toml` using Anthropic:
+### Example `~/.gitai.toml`
 
 ```toml
-model = "claude-haiku-4-5-20251001"
 provider = "anthropic"
-ollama_url = "http://localhost:11434"
+model = "claude-haiku-4-5-20251001"
 commit_style = "conventional"
 emoji = false
+ollama_url = "http://localhost:11434"
 ```
 
-## Requirements
+## Local setup (Ollama)
 
-- Python 3.11+
-- For Ollama: [Ollama](https://ollama.com/) running locally and a model pulled, e.g. `ollama pull llama3.2`
-- For cloud providers: the relevant API key set as an environment variable
+If you want to run fully offline with Ollama:
+
+1. Install [Ollama](https://ollama.com/)
+2. Pull a model: `ollama pull llama3.2`
+3. Run `gitai commit` — no API key needed
 
 ## TODO
 
-- [ ] Improve commit message quality: better prompt engineering, support for different commit styles (e.g. imperative mood enforcement, scope inference from changed files)
 - [ ] Allow configuring the number of suggestions generated
 - [ ] Add `--push` flag to commit and push in one step
 - [ ] Support unstaged changes with an optional `--all` flag

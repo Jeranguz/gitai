@@ -2,7 +2,23 @@
 name = "gitai"
 version = "0.1.0"
 description = "AI-powered git commit message generator"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Jeranguz" }]
 requires-python = ">=3.11"
+keywords = ["git", "ai", "commit", "cli", "llm", "conventional-commits"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: Utilities",
+]
 dependencies = [
     "typer",
     "rich",
@@ -12,11 +28,16 @@ dependencies = [
     "tomli-w",
 ]
 
-[project.scripts]
-gitai = "gitai.cli:app"
-
 [project.optional-dependencies]
 dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/Jeranguz/gitai"
+Repository = "https://github.com/Jeranguz/gitai"
+Issues = "https://github.com/Jeranguz/gitai/issues"
+
+[project.scripts]
+gitai = "gitai.cli:app"
 
 [build-system]
 requires = ["hatchling"]
