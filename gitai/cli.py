@@ -24,8 +24,9 @@ def commit():
         typer.echo(f"\n Committed: {chosen}")
         raise typer.Exit()
 
+    config = load_config()
     repo_name = get_repo_name()
-    prompt = build_commit_prompt(diff, repo_name)
+    prompt = build_commit_prompt(diff, repo_name, emoji=config["emoji"], commit_style=config["commit_style"])
 
     typer.echo("Generating commit message suggestions...")
     suggestions = get_commit_suggestions(prompt)
@@ -75,13 +76,17 @@ def config():
     if provider == "ollama":
         ollama_url = typer.prompt("Ollama URL", default=current["ollama_url"])
 
+    commit_style = typer.prompt(
+        "Commit style (conventional, free-form)",
+        default=current["commit_style"],
+    )
     emoji = typer.confirm("Use emojis in commit messages?", default=current["emoji"])
 
     new_config = {
         "model": model,
         "provider": provider,
         "ollama_url": ollama_url,
-        "commit_style": current["commit_style"],
+        "commit_style": commit_style,
         "emoji": emoji,
     }
 
