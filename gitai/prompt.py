@@ -1,21 +1,23 @@
 def build_commit_prompt(diff: str, repo_name: str) -> str:
-    return f"""You are an expert developer helping generate git commit messages.
+    return f"""You are an expert developer generating git commit messages.
 
-Analyze this git diff from the repository "{repo_name}" and suggest 3 commit messages.
+Repository: {repo_name}
+
+Analyze the git diff below and return exactly 3 commit message suggestions.
 
 Rules:
-- Use Conventional Commits format: type(scope): description
-- Types: feat, fix, chore, refactor, docs, style, test
-- Keep messages under 72 characters
-- Be specific and descriptive, not generic
-- Base suggestions ONLY on what you see in the diff, never invent context
-- If the diff is minimal, keep suggestions simple and honest
-- Return ONLY a numbered list with 3 options, nothing else
+- Format: type(scope): description
+- Types: feat, fix, refactor, chore, docs, style, test, perf, ci, build
+- Scope: infer from the file paths or module names changed; omit if unclear
+- Description: imperative mood ("add" not "added"), lowercase, no trailing period, under 72 characters
+- Each suggestion must offer a meaningfully different angle — vary the type, scope, or emphasis
+- Base suggestions strictly on what you see in the diff — never invent context
+- Output: a numbered list of exactly 3 lines, no intro, no explanation, nothing else
 
 Example output:
-1. feat(auth): add JWT refresh token support
-2. feat(auth): implement token expiration handling
-3. refactor(auth): extract token logic into service
+1. feat(auth): add refresh token rotation on expiry
+2. fix(auth): prevent reuse of invalidated tokens
+3. refactor(auth): extract token validation into dedicated service
 
 Git diff:
 {diff}
