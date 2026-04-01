@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/gitai"><img src="https://img.shields.io/pypi/v/gitai" alt="PyPI version"/></a>
-  <a href="https://pypi.org/project/gitai"><img src="https://img.shields.io/pypi/pyversions/gitai" alt="Python versions"/></a>
+  <a href="https://pypi.org/project/gitai-cli"><img src="https://img.shields.io/pypi/v/gitai-cli" alt="PyPI version"/></a>
+  <a href="https://pypi.org/project/gitai-cli"><img src="https://img.shields.io/pypi/pyversions/gitai-cli" alt="Python versions"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"/></a>
 </p>
 
