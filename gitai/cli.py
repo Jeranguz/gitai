@@ -33,7 +33,9 @@ def main(
 
 
 @app.command()
-def commit():
+def commit(
+    push: bool = typer.Option(False, "--push", help="Push to remote after committing."),
+):
     """Generate AI-powered commit message suggestions for staged changes."""
     typer.echo("🔍 Reading your git diff...")
 
@@ -47,6 +49,9 @@ def commit():
         chosen = typer.prompt("Enter your commit message")
         subprocess.run(["git", "commit", "-m", chosen])
         typer.echo(f"\n Committed: {chosen}")
+        if push:
+            typer.echo("Pushing to remote...")
+            subprocess.run(["git", "push"])
         raise typer.Exit()
 
     config = load_config()
@@ -77,6 +82,9 @@ def commit():
 
     subprocess.run(["git", "commit", "-m", chosen])
     typer.echo(f"\n Committed: {chosen}")
+    if push:
+        typer.echo("Pushing to remote...")
+        subprocess.run(["git", "push"])
 
 
 @app.command()
