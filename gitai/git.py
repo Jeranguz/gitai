@@ -27,3 +27,52 @@ def truncate_diff(diff: str, max_chars: int = 12000) -> tuple[str, bool]:
     if len(diff) <= max_chars:
         return diff, False
     return diff[:max_chars], True
+
+
+def get_branch_name() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True,
+    )
+    return result.stdout.strip()
+
+
+def get_base_branch(explicit: str | None = None) -> str:
+    if explicit:
+        return explicit
+    for candidate in ["main", "master", "develop"]:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", candidate],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            return candidate
+    raise SystemExit(
+        "[gitai] Could not detect base branch. Specify one: gitai pr <branch>"
+    )
+
+
+def get_commits_since_base(base: str) -> list[dict]:
+    log = subprocess.run(
+        ["git", "log", f"{base}..HEAD", "--format=%H %s"],
+        capture_output=True, text=True,
+    )
+    commits = []
+    for line in log.stdout.strip().splitlines():
+        if not line:
+            continue
+        sha, _, subject = line.partition(" ")
+        diff = subprocess.run(
+            ["git", "show", sha, "--patch", "--no-color"],
+            capture_output=True, text=True,
+        )
+        commits.append({"subject": subject, "diff": diff.stdout})
+    return commits
+
+
+def get_diff_since_base(base: str) -> str:
+    result = subprocess.run(
+        ["git", "diff", f"{base}...HEAD"],
+        capture_output=True, text=True,
+    )
+    return result.stdout

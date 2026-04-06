@@ -1,5 +1,9 @@
+import pytest
 from unittest.mock import patch, MagicMock
-from gitai.git import is_diff_meaningful, get_staged_diff, get_repo_name, truncate_diff
+from gitai.git import (
+    is_diff_meaningful, get_staged_diff, get_repo_name, truncate_diff,
+    get_branch_name, get_base_branch, get_commits_since_base, get_diff_since_base,
+)
 
 MEANINGFUL_DIFF = """\
 diff --git a/foo.py b/foo.py
@@ -105,3 +109,87 @@ def test_truncate_diff_preserves_content_up_to_limit():
     diff = "abcdef"
     result, _ = truncate_diff(diff, max_chars=3)
     assert result == "abc"
+
+
+# --- get_branch_name ---
+
+def test_get_branch_name_returns_string():
+    with patch("gitai.git.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(stdout="feature/my-branch\n")
+        result = get_branch_name()
+    assert result == "feature/my-branch"
+
+def test_get_branch_name_calls_correct_command():
+    with patch("gitai.git.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(stdout="main\n")
+        get_branch_name()
+    mock_run.assert_called_once_with(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True,
+    )
+
+
+# --- get_base_branch ---
+
+def test_get_base_branch_returns_explicit_when_provided():
+    result = get_base_branch("development")
+    assert result == "development"
+
+def test_get_base_branch_auto_detects_main():
+    def fake_run(cmd, **kwargs):
+        branch = cmd[-1]
+        return MagicMock(returncode=0 if branch == "main" else 1)
+    with patch("gitai.git.subprocess.run", side_effect=fake_run):
+        result = get_base_branch(None)
+    assert result == "main"
+
+def test_get_base_branch_falls_back_to_master():
+    def fake_run(cmd, **kwargs):
+        branch = cmd[-1]
+        return MagicMock(returncode=0 if branch == "master" else 1)
+    with patch("gitai.git.subprocess.run", side_effect=fake_run):
+        result = get_base_branch(None)
+    assert result == "master"
+
+def test_get_base_branch_exits_when_none_found():
+    with patch("gitai.git.subprocess.run", return_value=MagicMock(returncode=1)):
+        with pytest.raises(SystemExit):
+            get_base_branch(None)
+
+
+# --- get_commits_since_base ---
+
+def test_get_commits_since_base_returns_list_of_dicts():
+    def fake_run(cmd, **kwargs):
+        if "log" in cmd:
+            return MagicMock(stdout="abc123 feat: add thing\n")
+        return MagicMock(stdout="+code change\n")
+    with patch("gitai.git.subprocess.run", side_effect=fake_run):
+        result = get_commits_since_base("main")
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0]["subject"] == "feat: add thing"
+    assert "+code change" in result[0]["diff"]
+
+def test_get_commits_since_base_returns_empty_for_no_commits():
+    with patch("gitai.git.subprocess.run", return_value=MagicMock(stdout="")):
+        result = get_commits_since_base("main")
+    assert result == []
+
+
+# --- get_diff_since_base ---
+
+def test_get_diff_since_base_returns_diff_string():
+    with patch("gitai.git.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(stdout="+some change\n")
+        result = get_diff_since_base("main")
+    assert result == "+some change\n"
+
+def test_get_diff_since_base_calls_correct_command():
+    with patch("gitai.git.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(stdout="")
+        get_diff_since_base("main")
+    mock_run.assert_called_once_with(
+        ["git", "diff", "main...HEAD"],
+        capture_output=True, text=True,
+    )
