@@ -71,3 +71,56 @@ def _build_example(commit_style: str, emoji: bool) -> str:
             "2. fix(auth): prevent reuse of invalidated tokens\n"
             "3. refactor(auth): extract token validation into dedicated service"
         )
+
+
+def build_pr_prompt(
+    commits: list[dict],
+    diff: str,
+    repo_name: str,
+    mode: str = "default",
+    template: str | None = None,
+) -> str:
+    if template:
+        output_instructions = (
+            "Fill in the following PR template based on the changes. "
+            "Output ONLY the filled template, nothing else.\n\n"
+            f"{template}"
+        )
+    elif mode == "minimal":
+        output_instructions = (
+            "Output format (markdown only, nothing else):\n"
+            "## Title\n"
+            "[one-line PR title]\n\n"
+            "## Description\n"
+            "- [change 1]\n"
+            "- [change 2]"
+        )
+    else:  # default
+        output_instructions = (
+            "Output format (markdown only, nothing else):\n"
+            "## Title\n"
+            "[one-line PR title]\n\n"
+            "## Description\n"
+            "[one paragraph summary of what this PR does and why]\n\n"
+            "### Changes\n"
+            "- [change 1]\n"
+            "- [change 2]\n\n"
+            "### Testing Notes\n"
+            "[brief notes on how to verify these changes]"
+        )
+
+    if diff:
+        context = f"Full diff:\n{diff}"
+    else:
+        parts = [f"Commit: {c['subject']}\n{c['diff']}" for c in commits]
+        context = "\n\n".join(parts)
+
+    return f"""You are an expert developer writing a GitHub pull request description.
+
+Repository: {repo_name}
+
+{output_instructions}
+
+Changes:
+{context}
+"""
