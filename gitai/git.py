@@ -54,7 +54,7 @@ def get_base_branch(explicit: str | None = None) -> str:
 
 def get_commits_since_base(base: str) -> list[dict]:
     log = subprocess.run(
-        ["git", "log", f"{base}..HEAD", "--format=%H %s"],
+        ["git", "log", f"origin/{base}..HEAD", "--format=%H %s"],
         capture_output=True, text=True, encoding="utf-8",
     )
     commits = []
@@ -72,7 +72,7 @@ def get_commits_since_base(base: str) -> list[dict]:
 
 def get_diff_since_base(base: str) -> str:
     result = subprocess.run(
-        ["git", "diff", f"{base}...HEAD"],
+        ["git", "diff", f"origin/{base}...HEAD"],
         capture_output=True, text=True, encoding="utf-8",
     )
     return result.stdout
