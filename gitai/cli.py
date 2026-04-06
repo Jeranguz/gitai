@@ -35,6 +35,11 @@ def main(
 @app.command()
 def commit(
     push: bool = typer.Option(False, "--push", help="Push to remote after committing."),
+    suggestions: Optional[int] = typer.Option(
+        None, "--suggestions", "-n",
+        help="Number of commit message suggestions to generate.",
+        min=1,
+    ),
 ):
     """Generate AI-powered commit message suggestions for staged changes."""
     typer.echo("🔍 Reading your git diff...")
@@ -55,8 +60,9 @@ def commit(
         raise typer.Exit()
 
     config = load_config()
+    num_suggestions = suggestions if suggestions is not None else config.get("num_suggestions", 3)
     repo_name = get_repo_name()
-    prompt = build_commit_prompt(diff, repo_name, emoji=config["emoji"], commit_style=config["commit_style"])
+    prompt = build_commit_prompt(diff, repo_name, emoji=config["emoji"], commit_style=config["commit_style"], num_suggestions=num_suggestions)
 
     typer.echo("Generating commit message suggestions...")
     suggestions = get_commit_suggestions(prompt)
@@ -124,12 +130,22 @@ def config():
 
     emoji = typer.confirm("Use emojis in commit messages?", default=current["emoji"])
 
+    num_suggestions = typer.prompt(
+        "Number of suggestions to generate",
+        default=current.get("num_suggestions", 3),
+        type=int,
+    )
+    if num_suggestions < 1:
+        typer.echo("[gitai] num_suggestions must be at least 1.")
+        raise typer.Exit(code=1)
+
     new_config = {
         "model": model,
         "provider": provider,
         "ollama_url": ollama_url,
         "commit_style": commit_style,
         "emoji": emoji,
+        "num_suggestions": num_suggestions,
     }
 
     save_config(new_config)
