@@ -1,4 +1,4 @@
-def build_commit_prompt(diff: str, repo_name: str, emoji: bool = False, commit_style: str = "conventional") -> str:
+def build_commit_prompt(diff: str, repo_name: str, emoji: bool = False, commit_style: str = "conventional", num_suggestions: int = 3) -> str:
     format_rules = _build_format_rules(commit_style, emoji)
     example = _build_example(commit_style, emoji)
 
@@ -6,13 +6,13 @@ def build_commit_prompt(diff: str, repo_name: str, emoji: bool = False, commit_s
 
 Repository: {repo_name}
 
-Analyze the git diff below and return exactly 3 commit message suggestions.
+Analyze the git diff below and return exactly {num_suggestions} commit message suggestions.
 
 Rules:
 {format_rules}
 - Each suggestion must offer a meaningfully different angle — vary the type, scope, or emphasis
 - Base suggestions strictly on what you see in the diff — never invent context
-- Output: a numbered list of exactly 3 lines, no intro, no explanation, nothing else
+- Output: a numbered list of exactly {num_suggestions} lines, no intro, no explanation, nothing else
 
 Example output:
 {example}
