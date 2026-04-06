@@ -221,6 +221,7 @@ def config():
         "commit_style": commit_style,
         "emoji": emoji,
         "num_suggestions": num_suggestions,
+        "max_diff_chars": current.get("max_diff_chars", 12000),
     }
 
     save_config(new_config)
