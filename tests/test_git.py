@@ -125,7 +125,7 @@ def test_get_branch_name_calls_correct_command():
         get_branch_name()
     mock_run.assert_called_once_with(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
 
 
@@ -150,6 +150,14 @@ def test_get_base_branch_falls_back_to_master():
     with patch("gitai.git.subprocess.run", side_effect=fake_run):
         result = get_base_branch(None)
     assert result == "master"
+
+def test_get_base_branch_falls_back_to_develop():
+    def fake_run(cmd, **kwargs):
+        branch = cmd[-1]
+        return MagicMock(returncode=0 if branch == "develop" else 1)
+    with patch("gitai.git.subprocess.run", side_effect=fake_run):
+        result = get_base_branch(None)
+    assert result == "develop"
 
 def test_get_base_branch_exits_when_none_found():
     with patch("gitai.git.subprocess.run", return_value=MagicMock(returncode=1)):
@@ -191,5 +199,5 @@ def test_get_diff_since_base_calls_correct_command():
         get_diff_since_base("main")
     mock_run.assert_called_once_with(
         ["git", "diff", "main...HEAD"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
