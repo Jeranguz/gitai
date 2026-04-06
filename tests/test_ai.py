@@ -1,6 +1,6 @@
 from unittest.mock import patch, MagicMock
 import pytest
-from gitai.ai import get_commit_suggestions
+from gitai.ai import get_commit_suggestions, get_pr_description
 from litellm.exceptions import APIConnectionError, AuthenticationError
 
 FAKE_CONFIG_OLLAMA = {
@@ -161,3 +161,38 @@ def test_anthropic_auth_error_suggests_api_key_var(mock_completion, _):
     )
     with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
         get_commit_suggestions("prompt")
+
+
+# --- get_pr_description ---
+
+@patch("gitai.ai.load_config", return_value=FAKE_CONFIG_OLLAMA)
+@patch("gitai.ai.litellm.completion")
+def test_get_pr_description_returns_raw_text(mock_completion, _):
+    mock_completion.return_value = make_response("## Title\nfeat: add login\n## Description\n- added endpoint")
+    result = get_pr_description("prompt")
+    assert result == "## Title\nfeat: add login\n## Description\n- added endpoint"
+
+@patch("gitai.ai.load_config", return_value=FAKE_CONFIG_OLLAMA)
+@patch("gitai.ai.litellm.completion")
+def test_get_pr_description_uses_correct_model_string(mock_completion, _):
+    mock_completion.return_value = make_response("## Title\nsome title")
+    get_pr_description("prompt")
+    assert mock_completion.call_args.kwargs["model"] == "ollama/llama3.2"
+
+@patch("gitai.ai.load_config", return_value=FAKE_CONFIG_OLLAMA)
+@patch("gitai.ai.litellm.completion")
+def test_get_pr_description_connection_error_exits(mock_completion, _):
+    mock_completion.side_effect = APIConnectionError(
+        message="connection refused", llm_provider="ollama", model="llama3.2"
+    )
+    with pytest.raises(SystemExit, match="ollama serve"):
+        get_pr_description("prompt")
+
+@patch("gitai.ai.load_config", return_value=FAKE_CONFIG_OPENAI)
+@patch("gitai.ai.litellm.completion")
+def test_get_pr_description_auth_error_suggests_env_var(mock_completion, _):
+    mock_completion.side_effect = AuthenticationError(
+        message="invalid key", llm_provider="openai", model="gpt-4o"
+    )
+    with pytest.raises(SystemExit, match="OPENAI_API_KEY"):
+        get_pr_description("prompt")
