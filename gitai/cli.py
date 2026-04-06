@@ -56,7 +56,10 @@ def commit(
         typer.echo(f"\n Committed: {chosen}")
         if push:
             typer.echo("Pushing to remote...")
-            subprocess.run(["git", "push"])
+            push_result = subprocess.run(["git", "push"])
+            if push_result.returncode != 0:
+                typer.echo("[gitai] Push failed. Check your remote configuration and try again.")
+                raise typer.Exit(code=1)
         raise typer.Exit()
 
     config = load_config()
@@ -94,7 +97,10 @@ def commit(
     typer.echo(f"\n Committed: {chosen}")
     if push:
         typer.echo("Pushing to remote...")
-        subprocess.run(["git", "push"])
+        push_result = subprocess.run(["git", "push"])
+        if push_result.returncode != 0:
+            typer.echo("[gitai] Push failed. Check your remote configuration and try again.")
+            raise typer.Exit(code=1)
 
 
 @app.command()

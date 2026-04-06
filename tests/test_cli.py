@@ -1,4 +1,4 @@
-from unittest.mock import patch, call
+from unittest.mock import patch, call, MagicMock
 from typer.testing import CliRunner
 from gitai.cli import app
 
@@ -20,17 +20,19 @@ FAKE_SUGGESTIONS = [
 ]
 
 
-def invoke_commit(*args, config=FAKE_CONFIG, suggestions=FAKE_SUGGESTIONS, chosen="feat(cli): add commit command"):
+def invoke_commit(*args, config=FAKE_CONFIG, suggestions=FAKE_SUGGESTIONS, chosen="feat(cli): add commit command", push_returncode=0):
     """Run `gitai commit [args]` with all external calls mocked."""
     with patch("gitai.cli.get_staged_diff", return_value="+some change"), \
          patch("gitai.cli.is_diff_meaningful", return_value=True), \
          patch("gitai.cli.load_config", return_value=config), \
          patch("gitai.cli.get_repo_name", return_value="myrepo"), \
+         patch("gitai.cli.truncate_diff", return_value=("+some change", False)), \
          patch("gitai.cli.build_commit_prompt") as mock_prompt, \
          patch("gitai.cli.get_commit_suggestions", return_value=suggestions), \
          patch("gitai.cli.questionary.select") as mock_select, \
          patch("gitai.cli.subprocess.run") as mock_subprocess:
         mock_select.return_value.ask.return_value = chosen
+        mock_subprocess.return_value = MagicMock(returncode=push_returncode)
         result = runner.invoke(app, ["commit", *args])
         return result, mock_subprocess, mock_prompt
 
@@ -84,3 +86,15 @@ def test_suggestions_defaults_to_config_value():
     config = {**FAKE_CONFIG, "num_suggestions": 4}
     _, _, mock_prompt = invoke_commit(config=config)
     assert mock_prompt.call_args.kwargs["num_suggestions"] == 4
+
+
+# --- push error surfacing ---
+
+def test_push_failure_exits_with_error():
+    result, _, _ = invoke_commit("--push", push_returncode=1)
+    assert result.exit_code != 0
+
+
+def test_push_failure_prints_error_message():
+    result, _, _ = invoke_commit("--push", push_returncode=1)
+    assert "Push failed" in result.output
