@@ -14,7 +14,7 @@ AI-powered git commit message generator. Analyzes your staged changes and sugges
 
 ## Features
 
-- Reads your staged `git diff` and generates 3 commit message suggestions
+- Reads your staged `git diff` and generates commit message suggestions (3 by default, configurable)
 - Interactive selection: pick a suggestion or write your own
 - Supports multiple providers: Ollama (local), OpenAI, Anthropic, Gemini, and [more](https://docs.litellm.ai/docs/providers)
 - Two commit styles: [Conventional Commits](https://www.conventionalcommits.org/) or free-form
@@ -43,10 +43,13 @@ gitai reads the diff, calls your configured LLM, and presents 3 suggestions to c
 ## Usage
 
 ```
-gitai commit      Generate commit message suggestions for staged changes
-gitai config      View and update settings
-gitai --version   Show version
-gitai --help      Show help
+gitai commit                   Generate commit message suggestions for staged changes
+gitai commit --push            Push to remote automatically after committing
+gitai commit -n 5              Generate 5 suggestions instead of the default 3
+gitai commit --suggestions 5   Same as above
+gitai config                   View and update settings
+gitai --version                Show version
+gitai --help                   Show help
 ```
 
 ## Configuration
@@ -60,6 +63,7 @@ Run `gitai config` to update settings interactively. Settings are stored in `~/.
 | `ollama_url` | `http://localhost:11434` | Ollama API base URL (Ollama only) |
 | `commit_style` | `conventional` | `conventional` or `free-form` |
 | `emoji` | `false` | Prefix suggestions with gitmoji |
+| `num_suggestions` | `3` | Number of suggestions to generate |
 
 ### Supported providers
 
@@ -102,6 +106,5 @@ If you want to run fully offline with Ollama:
 
 ## TODO
 
-- [ ] Allow configuring the number of suggestions generated
-- [ ] Add `--push` flag to commit and push in one step
+- [x] Allow configuring the number of suggestions generated
 - [ ] Support unstaged changes with an optional `--all` flag
