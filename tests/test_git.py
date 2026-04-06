@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from gitai.git import is_diff_meaningful, get_staged_diff, get_repo_name
+from gitai.git import is_diff_meaningful, get_staged_diff, get_repo_name, truncate_diff
 
 MEANINGFUL_DIFF = """\
 diff --git a/foo.py b/foo.py
@@ -79,3 +79,29 @@ def test_get_repo_name_returns_string():
 
 def test_get_repo_name_returns_non_empty():
     assert len(get_repo_name()) > 0
+
+
+# --- truncate_diff ---
+
+def test_truncate_diff_short_diff_unchanged():
+    diff = "a" * 100
+    result, was_truncated = truncate_diff(diff, max_chars=200)
+    assert result == diff
+    assert was_truncated is False
+
+def test_truncate_diff_exact_limit_unchanged():
+    diff = "a" * 200
+    result, was_truncated = truncate_diff(diff, max_chars=200)
+    assert result == diff
+    assert was_truncated is False
+
+def test_truncate_diff_long_diff_is_truncated():
+    diff = "a" * 300
+    result, was_truncated = truncate_diff(diff, max_chars=200)
+    assert len(result) == 200
+    assert was_truncated is True
+
+def test_truncate_diff_preserves_content_up_to_limit():
+    diff = "abcdef"
+    result, _ = truncate_diff(diff, max_chars=3)
+    assert result == "abc"

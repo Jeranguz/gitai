@@ -22,3 +22,8 @@ def is_diff_meaningful(diff: str) -> bool:
         and line.strip() not in ("+", "-", "")
     ]
     return len(meaningful_lines) > 0
+
+def truncate_diff(diff: str, max_chars: int = 12000) -> tuple[str, bool]:
+    if len(diff) <= max_chars:
+        return diff, False
+    return diff[:max_chars], True

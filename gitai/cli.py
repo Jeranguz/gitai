@@ -3,7 +3,7 @@ import typer
 import questionary
 import subprocess
 from gitai.config import load_config, save_config
-from gitai.git import get_staged_diff, get_repo_name, is_diff_meaningful
+from gitai.git import get_staged_diff, get_repo_name, is_diff_meaningful, truncate_diff
 from gitai.prompt import build_commit_prompt
 from gitai.ai import get_commit_suggestions
 from gitai import __version__
@@ -60,6 +60,10 @@ def commit(
         raise typer.Exit()
 
     config = load_config()
+    max_chars = config.get("max_diff_chars", 12000)
+    diff, was_truncated = truncate_diff(diff, max_chars)
+    if was_truncated:
+        typer.echo("⚠️  Diff truncated to fit model context. Consider committing in smaller chunks.")
     num_suggestions = suggestions if suggestions is not None else config.get("num_suggestions", 3)
     repo_name = get_repo_name()
     prompt = build_commit_prompt(diff, repo_name, emoji=config["emoji"], commit_style=config["commit_style"], num_suggestions=num_suggestions)
