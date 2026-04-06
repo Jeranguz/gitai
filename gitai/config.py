@@ -10,6 +10,7 @@ DEFAULT_CONFIG = {
     "ollama_url": "http://localhost:11434",
     "commit_style": "conventional",
     "emoji": False,
+    "num_suggestions": 3,
 }
 
 def load_config() -> dict:
