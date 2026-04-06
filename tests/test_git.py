@@ -198,6 +198,6 @@ def test_get_diff_since_base_calls_correct_command():
         mock_run.return_value = MagicMock(stdout="")
         get_diff_since_base("main")
     mock_run.assert_called_once_with(
-        ["git", "diff", "main...HEAD"],
+        ["git", "diff", "origin/main...HEAD"],
         capture_output=True, text=True, encoding="utf-8",
     )
