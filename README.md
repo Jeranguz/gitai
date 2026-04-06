@@ -10,15 +10,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"/></a>
 </p>
 
-AI-powered git commit message generator. Analyzes your staged changes and suggests meaningful commit messages — using any LLM you already have access to.
+AI-powered git workflow tool. Generates meaningful commit messages and pull request descriptions from your diffs — using any LLM you already have access to.
 
 ## Features
 
 - Reads your staged `git diff` and generates commit message suggestions (3 by default, configurable)
+- Generates PR titles and descriptions from your branch's commits (`gitai pr`)
 - Interactive selection: pick a suggestion or write your own
 - Supports multiple providers: Ollama (local), OpenAI, Anthropic, Gemini, and [more](https://docs.litellm.ai/docs/providers)
 - Two commit styles: [Conventional Commits](https://www.conventionalcommits.org/) or free-form
 - Optional emoji (gitmoji) support
+- Automatically truncates large diffs to fit model context limits
 
 ## Installation
 
@@ -47,6 +49,13 @@ gitai commit                   Generate commit message suggestions for staged ch
 gitai commit --push            Push to remote automatically after committing
 gitai commit -n 5              Generate 5 suggestions instead of the default 3
 gitai commit --suggestions 5   Same as above
+
+gitai pr                       Push branch and generate a PR title + description
+gitai pr development           Compare against a specific base branch
+gitai pr --full-diff           Use a flat diff instead of per-commit breakdown
+gitai pr --minimal             Output title + bullet list only
+gitai pr --template TEMPLATE   Fill in a custom PR template file
+
 gitai config                   View and update settings
 gitai --version                Show version
 gitai --help                   Show help
@@ -64,6 +73,7 @@ Run `gitai config` to update settings interactively. Settings are stored in `~/.
 | `commit_style` | `conventional` | `conventional` or `free-form` |
 | `emoji` | `false` | Prefix suggestions with gitmoji |
 | `num_suggestions` | `3` | Number of suggestions to generate |
+| `max_diff_chars` | `12000` | Max diff size sent to the model (truncates if exceeded) |
 
 ### Supported providers
 
@@ -96,6 +106,29 @@ emoji = false
 ollama_url = "http://localhost:11434"
 ```
 
+## Generating PR descriptions
+
+`gitai pr` pushes your current branch and generates a ready-to-copy PR title and description based on your commits.
+
+```bash
+# Auto-detect base branch (main/master/develop) and generate PR description
+gitai pr
+
+# Compare against a specific base branch
+gitai pr development
+
+# Use a flat diff instead of per-commit breakdown (good for large PRs)
+gitai pr --full-diff
+
+# Minimal output: title + bullet list only
+gitai pr --minimal
+
+# Fill in your team's PR template
+gitai pr --template .github/PULL_REQUEST_TEMPLATE.md
+```
+
+If a `.github/PULL_REQUEST_TEMPLATE.md` exists in your repo, gitai will use it automatically.
+
 ## Local setup (Ollama)
 
 If you want to run fully offline with Ollama:
@@ -107,4 +140,5 @@ If you want to run fully offline with Ollama:
 ## TODO
 
 - [x] Allow configuring the number of suggestions generated
+- [x] Add `gitai pr` command for PR description generation
 - [ ] Support unstaged changes with an optional `--all` flag
