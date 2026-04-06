@@ -1,11 +1,16 @@
 from typing import Optional
+from pathlib import Path
 import typer
 import questionary
 import subprocess
 from gitai.config import load_config, save_config
-from gitai.git import get_staged_diff, get_repo_name, is_diff_meaningful, truncate_diff
-from gitai.prompt import build_commit_prompt
-from gitai.ai import get_commit_suggestions
+from gitai.git import (
+    get_staged_diff, get_repo_name, is_diff_meaningful,
+    truncate_diff, get_branch_name, get_base_branch,
+    get_commits_since_base, get_diff_since_base,
+)
+from gitai.prompt import build_commit_prompt, build_pr_prompt
+from gitai.ai import get_commit_suggestions, get_pr_description
 from gitai import __version__
 
 VALID_PROVIDERS = {"ollama", "openai", "anthropic", "gemini"}
@@ -101,6 +106,66 @@ def commit(
         if push_result.returncode != 0:
             typer.echo("[gitai] Push failed. Check your remote configuration and try again.")
             raise typer.Exit(code=1)
+
+
+@app.command()
+def pr(
+    base_branch: Optional[str] = typer.Argument(
+        None,
+        help="Base branch to compare against. Auto-detects main/master/develop if omitted.",
+    ),
+    full_diff: bool = typer.Option(
+        False, "--full-diff",
+        help="Use flat diff instead of per-commit breakdown.",
+    ),
+    minimal: bool = typer.Option(
+        False, "--minimal",
+        help="Output title + bullet list only.",
+    ),
+    template: Optional[str] = typer.Option(
+        None, "--template",
+        help="Path to a PR template file.",
+    ),
+):
+    """Push the current branch and generate a ready-to-copy PR title and description."""
+    config = load_config()
+    repo_name = get_repo_name()
+
+    branch = get_branch_name()
+    typer.echo(f"Pushing branch '{branch}' to remote...")
+    push_result = subprocess.run(["git", "push", "-u", "origin", branch])
+    if push_result.returncode != 0:
+        typer.echo("[gitai] Push failed. Check your remote configuration and try again.")
+        raise typer.Exit(code=1)
+
+    base = get_base_branch(base_branch)
+
+    if full_diff:
+        diff = get_diff_since_base(base)
+        max_chars = config.get("max_diff_chars", 12000)
+        diff, was_truncated = truncate_diff(diff, max_chars)
+        if was_truncated:
+            typer.echo("⚠️  Diff truncated to fit model context.")
+        commits = []
+    else:
+        commits = get_commits_since_base(base)
+        diff = ""
+
+    template_content = None
+    if template:
+        template_content = Path(template).read_text(encoding="utf-8")
+    else:
+        auto_template = Path(".github/PULL_REQUEST_TEMPLATE.md")
+        if auto_template.exists():
+            template_content = auto_template.read_text(encoding="utf-8")
+
+    mode = "minimal" if minimal else "default"
+    prompt = build_pr_prompt(commits, diff, repo_name, mode=mode, template=template_content)
+
+    typer.echo("Generating PR description...")
+    description = get_pr_description(prompt)
+
+    typer.echo("\n" + description)
 
 
 @app.command()

@@ -98,3 +98,132 @@ def test_push_failure_exits_with_error():
 def test_push_failure_prints_error_message():
     result, _, _ = invoke_commit("--push", push_returncode=1)
     assert "Push failed" in result.output
+
+
+FAKE_PR_DESCRIPTION = "## Title\nfeat: add auth\n## Description\n- added login endpoint"
+
+FAKE_COMMITS = [{"subject": "feat: add thing", "diff": "+code"}]
+
+
+def invoke_pr(*args, config=FAKE_CONFIG, description=FAKE_PR_DESCRIPTION, push_returncode=0):
+    """Run `gitai pr [args]` with all external calls mocked."""
+    with patch("gitai.cli.load_config", return_value=config), \
+         patch("gitai.cli.get_repo_name", return_value="myrepo"), \
+         patch("gitai.cli.get_branch_name", return_value="feature/foo"), \
+         patch("gitai.cli.get_base_branch", return_value="main"), \
+         patch("gitai.cli.get_commits_since_base", return_value=FAKE_COMMITS), \
+         patch("gitai.cli.get_diff_since_base", return_value="+flat diff"), \
+         patch("gitai.cli.truncate_diff", return_value=("+flat diff", False)), \
+         patch("gitai.cli.build_pr_prompt") as mock_prompt, \
+         patch("gitai.cli.get_pr_description", return_value=description), \
+         patch("gitai.cli.subprocess.run") as mock_subprocess:
+        mock_subprocess.return_value = MagicMock(returncode=push_returncode)
+        result = runner.invoke(app, ["pr", *args])
+        return result, mock_subprocess, mock_prompt
+
+
+# --- gitai pr basic behavior ---
+
+def test_pr_exits_zero_on_success():
+    result, _, _ = invoke_pr()
+    assert result.exit_code == 0
+
+def test_pr_prints_description():
+    result, _, _ = invoke_pr()
+    assert "feat: add auth" in result.output
+
+def test_pr_pushes_branch_to_remote():
+    _, mock_subprocess, _ = invoke_pr()
+    calls = [c.args[0] for c in mock_subprocess.call_args_list]
+    assert any(c[:3] == ["git", "push", "-u"] for c in calls)
+
+def test_pr_push_failure_exits_with_error():
+    result, _, _ = invoke_pr(push_returncode=1)
+    assert result.exit_code != 0
+
+def test_pr_push_failure_prints_error_message():
+    result, _, _ = invoke_pr(push_returncode=1)
+    assert "Push failed" in result.output
+
+
+# --- base branch argument ---
+
+def test_pr_passes_explicit_base_branch():
+    with patch("gitai.cli.load_config", return_value=FAKE_CONFIG), \
+         patch("gitai.cli.get_repo_name", return_value="myrepo"), \
+         patch("gitai.cli.get_branch_name", return_value="feature/foo"), \
+         patch("gitai.cli.get_base_branch") as mock_base, \
+         patch("gitai.cli.get_commits_since_base", return_value=FAKE_COMMITS), \
+         patch("gitai.cli.get_diff_since_base", return_value=""), \
+         patch("gitai.cli.truncate_diff", return_value=("", False)), \
+         patch("gitai.cli.build_pr_prompt"), \
+         patch("gitai.cli.get_pr_description", return_value=FAKE_PR_DESCRIPTION), \
+         patch("gitai.cli.subprocess.run", return_value=MagicMock(returncode=0)):
+        mock_base.return_value = "development"
+        runner.invoke(app, ["pr", "development"])
+    mock_base.assert_called_once_with("development")
+
+def test_pr_passes_none_when_no_base_branch_given():
+    with patch("gitai.cli.load_config", return_value=FAKE_CONFIG), \
+         patch("gitai.cli.get_repo_name", return_value="myrepo"), \
+         patch("gitai.cli.get_branch_name", return_value="feature/foo"), \
+         patch("gitai.cli.get_base_branch") as mock_base, \
+         patch("gitai.cli.get_commits_since_base", return_value=FAKE_COMMITS), \
+         patch("gitai.cli.get_diff_since_base", return_value=""), \
+         patch("gitai.cli.truncate_diff", return_value=("", False)), \
+         patch("gitai.cli.build_pr_prompt"), \
+         patch("gitai.cli.get_pr_description", return_value=FAKE_PR_DESCRIPTION), \
+         patch("gitai.cli.subprocess.run", return_value=MagicMock(returncode=0)):
+        mock_base.return_value = "main"
+        runner.invoke(app, ["pr"])
+    mock_base.assert_called_once_with(None)
+
+
+# --- --full-diff flag ---
+
+def test_full_diff_flag_uses_get_diff_since_base():
+    with patch("gitai.cli.load_config", return_value=FAKE_CONFIG), \
+         patch("gitai.cli.get_repo_name", return_value="myrepo"), \
+         patch("gitai.cli.get_branch_name", return_value="feature/foo"), \
+         patch("gitai.cli.get_base_branch", return_value="main"), \
+         patch("gitai.cli.get_commits_since_base") as mock_commits, \
+         patch("gitai.cli.get_diff_since_base") as mock_diff, \
+         patch("gitai.cli.truncate_diff", return_value=("+flat", False)), \
+         patch("gitai.cli.build_pr_prompt"), \
+         patch("gitai.cli.get_pr_description", return_value=FAKE_PR_DESCRIPTION), \
+         patch("gitai.cli.subprocess.run", return_value=MagicMock(returncode=0)):
+        mock_diff.return_value = "+flat diff"
+        runner.invoke(app, ["pr", "--full-diff"])
+    mock_diff.assert_called_once_with("main")
+    mock_commits.assert_not_called()
+
+
+# --- --minimal flag ---
+
+def test_minimal_flag_passes_minimal_mode_to_prompt():
+    _, _, mock_prompt = invoke_pr("--minimal")
+    assert mock_prompt.call_args.kwargs.get("mode") == "minimal"
+
+def test_no_minimal_flag_passes_default_mode_to_prompt():
+    _, _, mock_prompt = invoke_pr()
+    assert mock_prompt.call_args.kwargs.get("mode") == "default"
+
+
+# --- --template flag ---
+
+def test_template_flag_loads_file_content(tmp_path):
+    template_file = tmp_path / "template.md"
+    template_file.write_text("## Summary\n## Checklist\n")
+    with patch("gitai.cli.load_config", return_value=FAKE_CONFIG), \
+         patch("gitai.cli.get_repo_name", return_value="myrepo"), \
+         patch("gitai.cli.get_branch_name", return_value="feature/foo"), \
+         patch("gitai.cli.get_base_branch", return_value="main"), \
+         patch("gitai.cli.get_commits_since_base", return_value=FAKE_COMMITS), \
+         patch("gitai.cli.get_diff_since_base", return_value=""), \
+         patch("gitai.cli.truncate_diff", return_value=("", False)), \
+         patch("gitai.cli.build_pr_prompt") as mock_prompt, \
+         patch("gitai.cli.get_pr_description", return_value=FAKE_PR_DESCRIPTION), \
+         patch("gitai.cli.subprocess.run", return_value=MagicMock(returncode=0)):
+        runner.invoke(app, ["pr", "--template", str(template_file)])
+    template_arg = mock_prompt.call_args.kwargs.get("template")
+    assert template_arg == "## Summary\n## Checklist\n"
