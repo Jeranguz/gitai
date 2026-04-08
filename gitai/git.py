@@ -76,3 +76,19 @@ def get_diff_since_base(base: str) -> str:
         capture_output=True, text=True, encoding="utf-8",
     )
     return result.stdout
+
+
+def get_remote_provider() -> str:
+    result = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    url = result.stdout.strip()
+    if "github.com" in url:
+        return "github"
+    if "gitlab.com" in url:
+        return "gitlab"
+    raise SystemExit(
+        "[gitai] Could not detect provider from remote URL. "
+        "Only github.com and gitlab.com are supported."
+    )
