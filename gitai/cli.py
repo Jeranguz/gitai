@@ -119,7 +119,7 @@ def _parse_pr_title_body(description: str) -> tuple[str, str]:
     """
     lines = description.splitlines()
     title = ""
-    body_start = 0
+    body_start = 0  # fallback: treat entire input as body if ## Title not found
     for i, line in enumerate(lines):
         if line.strip() == "## Title":
             for j in range(i + 1, len(lines)):

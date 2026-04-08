@@ -35,3 +35,9 @@ def test_parse_title_stripped():
     description = "## Title\n  padded title  \n\n## Description\nbody"
     title, _ = _parse_pr_title_body(description)
     assert title == "padded title"
+
+
+def test_parse_missing_title_section():
+    title, body = _parse_pr_title_body("## Description\nsome body")
+    assert title == ""
+    assert "some body" in body
