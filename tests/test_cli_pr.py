@@ -68,7 +68,7 @@ def test_create_github_calls_gh():
     assert "--title" in gh_calls[0]
     assert "add login feature" in gh_calls[0]
     assert "--draft" not in gh_calls[0]
-    assert "https://github.com/user/repo/pull/1" in result.output
+    assert result.exit_code == 0
 
 
 def test_create_github_draft_passes_flag():
@@ -88,7 +88,8 @@ def test_create_github_draft_passes_flag():
          patch("gitai.cli.get_pr_description", return_value=FAKE_DESCRIPTION), \
          patch("gitai.cli.get_remote_provider", return_value="github"), \
          patch("gitai.cli.shutil.which", return_value="/usr/bin/gh"):
-        runner.invoke(app, ["pr", "--create", "--draft"], input="y\n")
+        result = runner.invoke(app, ["pr", "--create", "--draft"], input="y\n")
+    assert result.exit_code == 0
 
     gh_calls = [c for c in captured if c and c[0] == "gh"]
     assert "--draft" in gh_calls[0]
@@ -118,7 +119,7 @@ def test_create_gitlab_calls_glab():
     assert glab_calls[0][:3] == ["glab", "mr", "create"]
     assert "--title" in glab_calls[0]
     assert "add login feature" in glab_calls[0]
-    assert "https://gitlab.com" in result.output
+    assert result.exit_code == 0
 
 
 def test_create_cli_not_installed_exits():

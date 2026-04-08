@@ -241,9 +241,6 @@ def pr(
         typer.echo("[gitai] PR creation failed. See output above.")
         raise typer.Exit(code=1)
 
-    if result.stdout:
-        typer.echo(result.stdout.strip())
-
 
 @app.command()
 def config():
