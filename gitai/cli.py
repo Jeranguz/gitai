@@ -108,6 +108,30 @@ def commit(
             raise typer.Exit(code=1)
 
 
+def _parse_pr_title_body(description: str) -> tuple[str, str]:
+    """Extract title and body from PR description in the format:
+
+    ## Title
+    <title>
+
+    ## Description
+    <body>
+    """
+    lines = description.splitlines()
+    title = ""
+    body_start = 0
+    for i, line in enumerate(lines):
+        if line.strip() == "## Title":
+            for j in range(i + 1, len(lines)):
+                if lines[j].strip():
+                    title = lines[j].strip()
+                    body_start = j + 1
+                    break
+            break
+    body = "\n".join(lines[body_start:]).strip()
+    return title, body
+
+
 @app.command()
 def pr(
     base_branch: Optional[str] = typer.Argument(
