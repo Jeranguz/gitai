@@ -83,6 +83,11 @@ def get_remote_provider() -> str:
         ["git", "remote", "get-url", "origin"],
         capture_output=True, text=True, encoding="utf-8",
     )
+    if result.returncode != 0:
+        raise SystemExit(
+            "[gitai] Could not get remote URL for 'origin'. "
+            "Make sure the repository has a remote named 'origin'."
+        )
     url = result.stdout.strip()
     if "github.com" in url:
         return "github"

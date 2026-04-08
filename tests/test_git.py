@@ -20,7 +20,7 @@ index abc..def 100644
 
 def _mock_run(stdout):
     """Helper to create a mock subprocess.run result."""
-    return MagicMock(stdout=stdout)
+    return MagicMock(stdout=stdout, returncode=0)
 
 
 # --- is_diff_meaningful ---
@@ -236,3 +236,13 @@ def test_get_remote_provider_unknown_exits():
         with pytest.raises(SystemExit) as exc:
             get_remote_provider()
         assert "github.com and gitlab.com" in str(exc.value)
+
+
+def test_get_remote_provider_no_origin_exits():
+    m = MagicMock()
+    m.returncode = 128
+    m.stdout = ""
+    with patch("gitai.git.subprocess.run", return_value=m):
+        with pytest.raises(SystemExit) as exc:
+            get_remote_provider()
+        assert "origin" in str(exc.value)
