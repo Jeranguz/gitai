@@ -16,6 +16,7 @@ AI-powered git workflow tool. Generates meaningful commit messages and pull requ
 
 - Reads your staged `git diff` and generates commit message suggestions (3 by default, configurable)
 - Generates PR titles and descriptions from your branch's commits (`gitai pr`)
+- Creates PRs and MRs directly via `gh` (GitHub) or `glab` (GitLab) with `--create`
 - Interactive selection: pick a suggestion or write your own
 - Supports multiple providers: Ollama (local), OpenAI, Anthropic, Gemini, and [more](https://docs.litellm.ai/docs/providers)
 - Two commit styles: [Conventional Commits](https://www.conventionalcommits.org/) or free-form
@@ -55,6 +56,8 @@ gitai pr development           Compare against a specific base branch
 gitai pr --full-diff           Use a flat diff instead of per-commit breakdown
 gitai pr --minimal             Output title + bullet list only
 gitai pr --template TEMPLATE   Fill in a custom PR template file
+gitai pr --create              Create the PR/MR after generating (requires gh or glab)
+gitai pr --create --draft      Create as a draft PR/MR
 
 gitai config                   View and update settings
 gitai --version                Show version
@@ -129,6 +132,20 @@ gitai pr --template .github/PULL_REQUEST_TEMPLATE.md
 
 If a `.github/PULL_REQUEST_TEMPLATE.md` exists in your repo, gitai will use it automatically.
 
+### Creating PRs directly
+
+Add `--create` to push the generated description straight to GitHub or GitLab:
+
+```bash
+# Create a PR on GitHub (requires gh: https://cli.github.com)
+gitai pr --create
+
+# Create a draft MR on GitLab (requires glab: https://gitlab.com/gitlab-org/cli)
+gitai pr --create --draft
+```
+
+gitai detects your provider automatically from the remote URL (`github.com` or `gitlab.com`). You'll be prompted to confirm before anything is created. Make sure you're logged in with `gh auth login` or `glab auth login` first.
+
 ## Local setup (Ollama)
 
 If you want to run fully offline with Ollama:
@@ -141,4 +158,5 @@ If you want to run fully offline with Ollama:
 
 - [x] Allow configuring the number of suggestions generated
 - [x] Add `gitai pr` command for PR description generation
+- [x] Create PRs/MRs directly via `gh`/`glab` with `--create`
 - [ ] Support unstaged changes with an optional `--all` flag
