@@ -3,11 +3,13 @@ from pathlib import Path
 import typer
 import questionary
 import subprocess
+import shutil
 from gitai.config import load_config, save_config
 from gitai.git import (
     get_staged_diff, get_repo_name, is_diff_meaningful,
     truncate_diff, get_branch_name, get_base_branch,
     get_commits_since_base, get_diff_since_base,
+    get_remote_provider,
 )
 from gitai.prompt import build_commit_prompt, build_pr_prompt
 from gitai.ai import get_commit_suggestions, get_pr_description
@@ -108,6 +110,30 @@ def commit(
             raise typer.Exit(code=1)
 
 
+def _parse_pr_title_body(description: str) -> tuple[str, str]:
+    """Extract title and body from PR description in the format:
+
+    ## Title
+    <title>
+
+    ## Description
+    <body>
+    """
+    lines = description.splitlines()
+    title = ""
+    body_start = 0  # fallback: treat entire input as body if ## Title not found
+    for i, line in enumerate(lines):
+        if line.strip() == "## Title":
+            for j in range(i + 1, len(lines)):
+                if lines[j].strip():
+                    title = lines[j].strip()
+                    body_start = j + 1
+                    break
+            break
+    body = "\n".join(lines[body_start:]).strip()
+    return title, body
+
+
 @app.command()
 def pr(
     base_branch: Optional[str] = typer.Argument(
@@ -126,8 +152,20 @@ def pr(
         None, "--template",
         help="Path to a PR template file.",
     ),
+    create: bool = typer.Option(
+        False, "--create",
+        help="Create the PR/MR via gh (GitHub) or glab (GitLab) after generating.",
+    ),
+    draft: bool = typer.Option(
+        False, "--draft",
+        help="Mark the created PR/MR as a draft. Requires --create.",
+    ),
 ):
     """Push the current branch and generate a ready-to-copy PR title and description."""
+    if draft and not create:
+        typer.echo("[gitai] --draft requires --create.")
+        raise typer.Exit(code=1)
+
     config = load_config()
     repo_name = get_repo_name()
 
@@ -166,6 +204,42 @@ def pr(
     description = get_pr_description(prompt)
 
     typer.echo("\n" + description)
+
+    if not create:
+        return
+
+    if not typer.confirm("Create PR with this description?", default=False):
+        return
+
+    provider = get_remote_provider()
+
+    _CLI_INSTALL = {
+        "github": ("gh", "https://cli.github.com", "gh auth login"),
+        "gitlab": ("glab", "https://gitlab.com/gitlab-org/cli", "glab auth login"),
+    }
+    cli_name, install_url, auth_cmd = _CLI_INSTALL[provider]
+
+    if not shutil.which(cli_name):
+        typer.echo(
+            f"[gitai] '{cli_name}' is not installed. "
+            f"Install it from {install_url} and run '{auth_cmd}'."
+        )
+        raise typer.Exit(code=1)
+
+    title, body = _parse_pr_title_body(description)
+
+    if provider == "github":
+        cmd = ["gh", "pr", "create", "--title", title, "--body", body]
+    else:
+        cmd = ["glab", "mr", "create", "--title", title, "--description", body]
+
+    if draft:
+        cmd.append("--draft")
+
+    result = subprocess.run(cmd, capture_output=False, text=True)
+    if result.returncode != 0:
+        typer.echo("[gitai] PR creation failed. See output above.")
+        raise typer.Exit(code=1)
 
 
 @app.command()

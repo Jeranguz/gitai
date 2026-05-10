@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from gitai.git import (
     is_diff_meaningful, get_staged_diff, get_repo_name, truncate_diff,
     get_branch_name, get_base_branch, get_commits_since_base, get_diff_since_base,
+    get_remote_provider,
 )
 
 MEANINGFUL_DIFF = """\
@@ -15,6 +16,11 @@ index abc..def 100644
 +    return 42
 -    pass
 """
+
+
+def _mock_run(stdout):
+    """Helper to create a mock subprocess.run result."""
+    return MagicMock(stdout=stdout, returncode=0)
 
 
 # --- is_diff_meaningful ---
@@ -201,3 +207,42 @@ def test_get_diff_since_base_calls_correct_command():
         ["git", "diff", "origin/main...HEAD"],
         capture_output=True, text=True, encoding="utf-8",
     )
+
+
+# --- get_remote_provider ---
+
+def test_get_remote_provider_github():
+    with patch("gitai.git.subprocess.run", return_value=_mock_run("https://github.com/user/repo.git\n")):
+        assert get_remote_provider() == "github"
+
+
+def test_get_remote_provider_gitlab():
+    with patch("gitai.git.subprocess.run", return_value=_mock_run("https://gitlab.com/user/repo.git\n")):
+        assert get_remote_provider() == "gitlab"
+
+
+def test_get_remote_provider_ssh_github():
+    with patch("gitai.git.subprocess.run", return_value=_mock_run("git@github.com:user/repo.git\n")):
+        assert get_remote_provider() == "github"
+
+
+def test_get_remote_provider_ssh_gitlab():
+    with patch("gitai.git.subprocess.run", return_value=_mock_run("git@gitlab.com:user/repo.git\n")):
+        assert get_remote_provider() == "gitlab"
+
+
+def test_get_remote_provider_unknown_exits():
+    with patch("gitai.git.subprocess.run", return_value=_mock_run("https://bitbucket.org/user/repo.git\n")):
+        with pytest.raises(SystemExit) as exc:
+            get_remote_provider()
+        assert "github.com and gitlab.com" in str(exc.value)
+
+
+def test_get_remote_provider_no_origin_exits():
+    m = MagicMock()
+    m.returncode = 128
+    m.stdout = ""
+    with patch("gitai.git.subprocess.run", return_value=m):
+        with pytest.raises(SystemExit) as exc:
+            get_remote_provider()
+        assert "origin" in str(exc.value)
